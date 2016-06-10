@@ -2,4 +2,6 @@
     <string name="app_name">Code Case</string>
     <string name="title_tweet_list">Tweets</string>
     <string name="title_tweet_detail">Tweet Detail</string>
+    <string name="timeline_empty">No Tweets</string>
+    <string name="user_timeline">User Timeline</string>
 </resources>

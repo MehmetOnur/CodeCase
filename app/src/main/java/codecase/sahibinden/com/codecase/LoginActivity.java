@@ -32,12 +32,17 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton = (TwitterLoginButton) findViewById(R.id.twitter_login_button);
         loginButton.setCallback(new Callback<TwitterSession>() {
+
             @Override
             public void success(Result<TwitterSession> result) {
 
-//                Intent themeChooserIntent = new Intent(LoginActivity.this, ItemListActivity.class);
-//                startActivity(themeChooserIntent);
-                Log.d("TwitterKit", "Login with Twitter failure");
+                Bundle bundle = new Bundle();
+                bundle.putString("TWITTER_KEY", TWITTER_KEY);
+                bundle.putString("TWITTER_SECRET", TWITTER_SECRET);
+
+                Intent tweetListIntent = new Intent(LoginActivity.this, TweetListActivity.class);
+                tweetListIntent.putExtras(bundle);
+                startActivity(tweetListIntent);
 
             }
 

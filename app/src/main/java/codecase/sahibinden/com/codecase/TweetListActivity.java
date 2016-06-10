@@ -1,26 +1,39 @@
 package codecase.sahibinden.com.codecase;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.LayoutInflater;
+import android.support.v4.app.NavUtils;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import android.support.v4.app.NavUtils;
-import android.support.v7.app.ActionBar;
-import android.view.MenuItem;
+import android.widget.AbsListView;
+import android.widget.ListView;
+import android.widget.Toast;
 
-import codecase.sahibinden.com.codecase.dummy.DummyContent;
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.Result;
+import com.twitter.sdk.android.core.TwitterAuthConfig;
+import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.TwitterException;
+import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.tweetcomposer.ComposerActivity;
+import com.twitter.sdk.android.tweetcomposer.TweetComposer;
+import com.twitter.sdk.android.tweetui.Timeline;
+import com.twitter.sdk.android.tweetui.TimelineResult;
+import com.twitter.sdk.android.tweetui.TweetTimelineListAdapter;
+import com.twitter.sdk.android.tweetui.UserTimeline;
 
-import java.util.List;
+import java.lang.ref.WeakReference;
+
+import io.fabric.sdk.android.Fabric;
 
 /**
  * An activity representing a list of Tweets. This activity
@@ -38,31 +51,106 @@ public class TweetListActivity extends AppCompatActivity {
      */
     private boolean mTwoPane;
 
+    private SwipeRefreshLayout swipeLayout;
+    private SwipeRefreshLayout.OnRefreshListener swipeRefreshListener;
+    private static final int TWEETER_REQ_CODE = 1;
+    final WeakReference<Activity> activityRef = new WeakReference<Activity>(TweetListActivity.this);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tweet_list);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle());
+        Intent receiveIntend = getIntent();
+        Bundle receivedBundle = receiveIntend.getExtras();
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            }
-        });
-        // Show the Up button in the action bar.
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
+        String TWITTER_KEY = receivedBundle.getString("TWITTER_KEY");
+        String TWITTER_SECRET = receivedBundle.getString("TWITTER_SECRET");
+
+        if (TWITTER_KEY != null && TWITTER_SECRET != null) {
+            TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
+            Fabric.with(this, new TwitterCore(authConfig), new TweetComposer());
         }
 
-        View recyclerView = findViewById(R.id.tweet_list);
-        assert recyclerView != null;
-        setupRecyclerView((RecyclerView) recyclerView);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        ActionBar actionBar = getSupportActionBar();
+
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle(getResources().getString(R.string.user_timeline));
+        }
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        if (fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    final TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
+                    final Intent intent = new ComposerActivity.Builder(TweetListActivity.this).session(session).createIntent();
+                    startActivityForResult(intent, TWEETER_REQ_CODE);
+                }
+            });
+        }
+
+//        String userName = Twitter.getInstance().core.getSessionManager().getActiveSession().getUserName();
+        final UserTimeline userTimeline = new UserTimeline.Builder().screenName("fabric").build();
+        final CustomTweetTimelineListAdapter adapter = new CustomTweetTimelineListAdapter(this, userTimeline);
+        final ListView listView = (ListView) findViewById(R.id.list);
+        assert listView != null;
+        listView.setAdapter(adapter);
+
+        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefresh);
+        final View emptyView = findViewById(android.R.id.empty);
+        listView.setEmptyView(emptyView);
+
+        assert swipeLayout != null;
+        swipeLayout.setColorSchemeResources(R.color.twitter_blue, R.color.twitter_dark);
+
+        // set custom scroll listener to enable swipe refresh layout only when at list top
+        listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            boolean enableRefresh = false;
+
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (listView.getChildCount() > 0) {
+                    // check that the first item is visible and that its top matches the parent
+                    enableRefresh = listView.getFirstVisiblePosition() == 0 && listView.getChildAt(0).getTop() >= 0;
+                } else {
+                    enableRefresh = false;
+                }
+                swipeLayout.setEnabled(enableRefresh);
+            }
+        });
+
+        // specify action to take on swipe refresh
+        swipeRefreshListener = new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                swipeLayout.setRefreshing(true);
+                adapter.refresh(new Callback<TimelineResult<Tweet>>() {
+                    @Override
+                    public void success(Result<TimelineResult<Tweet>> result) {
+                        swipeLayout.setRefreshing(false);
+                    }
+
+                    @Override
+                    public void failure(TwitterException exception) {
+                        swipeLayout.setRefreshing(false);
+                        final Activity activity = activityRef.get();
+                        if (activity != null && !activity.isFinishing()) {
+                            Toast.makeText(activity, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        };
+        swipeLayout.setOnRefreshListener(swipeRefreshListener);
 
         if (findViewById(R.id.tweet_detail_container) != null) {
             // The detail container view will be present only in the
@@ -70,6 +158,81 @@ public class TweetListActivity extends AppCompatActivity {
             // If this view is present, then the
             // activity should be in two-pane mode.
             mTwoPane = true;
+        }
+    }
+
+
+    /**
+     * Custom Adapter to overrides view onClickListener
+     */
+    class CustomTweetTimelineListAdapter extends TweetTimelineListAdapter {
+
+        public CustomTweetTimelineListAdapter(Context context, Timeline<Tweet> timeline) {
+            super(context, timeline);
+        }
+
+        @Override
+        public View getView(final int position, View convertView, ViewGroup parent) {
+            View view = super.getView(position, convertView, parent);
+
+            //disable subviews
+            if (view instanceof ViewGroup) {
+                disableViewAndSubViews((ViewGroup) view);
+            }
+
+            //enable root view and attach custom listener
+            view.setEnabled(true);
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String tweetId = String.valueOf(getItemId(position));
+//                    Toast.makeText(context, tweetId, Toast.LENGTH_SHORT).show();
+
+                    if (mTwoPane) {
+                        Bundle arguments = new Bundle();
+                        arguments.putString(TweetDetailFragment.ARG_ITEM_ID, tweetId);
+                        TweetDetailFragment fragment = new TweetDetailFragment();
+                        fragment.setArguments(arguments);
+                        getSupportFragmentManager().beginTransaction().replace(R.id.tweet_detail_container, fragment).commit();
+                    } else {
+                        Context context = v.getContext();
+                        Intent intent = new Intent(context, TweetDetailActivity.class);
+                        intent.putExtra(TweetDetailFragment.ARG_ITEM_ID, tweetId);
+                        context.startActivity(intent);
+                    }
+
+                }
+            });
+            return view;
+        }
+
+        private void disableViewAndSubViews(ViewGroup layout) {
+            layout.setEnabled(false);
+            for (int i = 0; i < layout.getChildCount(); i++) {
+                View child = layout.getChildAt(i);
+                if (child instanceof ViewGroup) {
+                    disableViewAndSubViews((ViewGroup) child);
+                } else {
+                    child.setEnabled(false);
+                    child.setClickable(false);
+                    child.setLongClickable(false);
+                }
+            }
+        }
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == TWEETER_REQ_CODE) {
+            swipeLayout.post(new Runnable() {
+                @Override
+                public void run() {
+                    swipeLayout.setRefreshing(true);
+                    swipeRefreshListener.onRefresh();
+                }
+            });
         }
     }
 
@@ -90,72 +253,5 @@ public class TweetListActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(DummyContent.ITEMS));
-    }
 
-    public class SimpleItemRecyclerViewAdapter extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
-
-        private final List<DummyContent.DummyItem> mValues;
-
-        public SimpleItemRecyclerViewAdapter(List<DummyContent.DummyItem> items) {
-            mValues = items;
-        }
-
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.tweet_list_content, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mItem = mValues.get(position);
-            holder.mIdView.setText(mValues.get(position).id);
-            holder.mContentView.setText(mValues.get(position).content);
-
-            holder.mView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (mTwoPane) {
-                        Bundle arguments = new Bundle();
-                        arguments.putString(TweetDetailFragment.ARG_ITEM_ID, holder.mItem.id);
-                        TweetDetailFragment fragment = new TweetDetailFragment();
-                        fragment.setArguments(arguments);
-                        getSupportFragmentManager().beginTransaction().replace(R.id.tweet_detail_container, fragment).commit();
-                    } else {
-                        Context context = v.getContext();
-                        Intent intent = new Intent(context, TweetDetailActivity.class);
-                        intent.putExtra(TweetDetailFragment.ARG_ITEM_ID, holder.mItem.id);
-
-                        context.startActivity(intent);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return mValues.size();
-        }
-
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            public final View mView;
-            public final TextView mIdView;
-            public final TextView mContentView;
-            public DummyContent.DummyItem mItem;
-
-            public ViewHolder(View view) {
-                super(view);
-                mView = view;
-                mIdView = (TextView) view.findViewById(R.id.id);
-                mContentView = (TextView) view.findViewById(R.id.content);
-            }
-
-            @Override
-            public String toString() {
-                return super.toString() + " '" + mContentView.getText() + "'";
-            }
-        }
-    }
 }

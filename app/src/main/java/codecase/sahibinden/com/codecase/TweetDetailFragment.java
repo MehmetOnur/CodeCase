@@ -1,15 +1,21 @@
 package codecase.sahibinden.com.codecase;
 
 import android.app.Activity;
-import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.RelativeLayout;
 
-import codecase.sahibinden.com.codecase.dummy.DummyContent;
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.Result;
+import com.twitter.sdk.android.core.TwitterException;
+import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.tweetui.TweetUtils;
+import com.twitter.sdk.android.tweetui.TweetView;
 
 /**
  * A fragment representing a single Tweet detail screen.
@@ -24,10 +30,7 @@ public class TweetDetailFragment extends Fragment {
      */
     public static final String ARG_ITEM_ID = "item_id";
 
-    /**
-     * The dummy content this fragment is presenting.
-     */
-    private DummyContent.DummyItem mItem;
+    private String tweetId;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -44,12 +47,12 @@ public class TweetDetailFragment extends Fragment {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
-            mItem = DummyContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID));
+            tweetId = getArguments().getString(ARG_ITEM_ID);
 
             Activity activity = this.getActivity();
             CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
             if (appBarLayout != null) {
-                appBarLayout.setTitle(mItem.content);
+                appBarLayout.setTitle(getResources().getString(R.string.title_tweet_detail));
             }
         }
     }
@@ -58,10 +61,23 @@ public class TweetDetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.tweet_detail, container, false);
 
-        // Show the dummy content as text in a TextView.
-        if (mItem != null) {
-            ((TextView) rootView.findViewById(R.id.tweet_detail)).setText(mItem.details);
-        }
+        final RelativeLayout tweetContainer = (RelativeLayout) rootView.findViewById(R.id.tweetContainer);
+
+        TweetUtils.loadTweet(Long.valueOf(tweetId), new Callback<Tweet>() {
+
+            @Override
+            public void success(Result<Tweet> result) {
+                TweetView tweetView = new TweetView(getActivity(), result.data);
+                tweetView.setTweetActionsEnabled(true);
+                tweetContainer.addView(tweetView);
+            }
+
+            @Override
+            public void failure(TwitterException exception) {
+                Log.d("TwitterKit", "Load Tweet failure", exception);
+            }
+
+        });
 
         return rootView;
     }
