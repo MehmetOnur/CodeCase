@@ -17,6 +17,7 @@ import android.widget.AbsListView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
@@ -86,8 +87,8 @@ public class TweetListActivity extends AppCompatActivity {
             });
         }
 
-//        String userName = Twitter.getInstance().core.getSessionManager().getActiveSession().getUserName();
-        final UserTimeline userTimeline = new UserTimeline.Builder().screenName("fabric").build();
+        String userName = Twitter.getInstance().core.getSessionManager().getActiveSession().getUserName();
+        final UserTimeline userTimeline = new UserTimeline.Builder().screenName(userName).build();
         final CustomTweetTimelineListAdapter adapter = new CustomTweetTimelineListAdapter(this, userTimeline);
         final ListView listView = (ListView) findViewById(R.id.list);
         assert listView != null;
