@@ -155,8 +155,9 @@ public class TweetListActivity extends AppCompatActivity {
 
 
     /**
-     * Custom Adapter to overrides view onClickListener
+     * Custom Adapter to overrides TweetView onClickListener
      */
+
     class CustomTweetTimelineListAdapter extends TweetTimelineListAdapter {
 
         public CustomTweetTimelineListAdapter(Context context, Timeline<Tweet> timeline) {
@@ -178,7 +179,6 @@ public class TweetListActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     String tweetId = String.valueOf(getItemId(position));
-//                    Toast.makeText(context, tweetId, Toast.LENGTH_SHORT).show();
 
                     if (mTwoPane) {
                         Bundle arguments = new Bundle();

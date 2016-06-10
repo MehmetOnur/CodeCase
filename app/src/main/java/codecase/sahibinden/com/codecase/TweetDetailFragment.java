@@ -24,6 +24,7 @@ import com.twitter.sdk.android.tweetui.TweetView;
  * on handsets.
  */
 public class TweetDetailFragment extends Fragment {
+
     /**
      * The fragment argument representing the item ID that this fragment
      * represents.

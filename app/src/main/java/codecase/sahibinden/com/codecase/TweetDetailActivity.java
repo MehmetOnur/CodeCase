@@ -79,4 +79,5 @@ public class TweetDetailActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
 }
