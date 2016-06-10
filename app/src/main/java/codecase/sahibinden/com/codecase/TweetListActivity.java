@@ -61,16 +61,8 @@ public class TweetListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tweet_list);
 
-        Intent receiveIntend = getIntent();
-        Bundle receivedBundle = receiveIntend.getExtras();
-
-        String TWITTER_KEY = receivedBundle.getString("TWITTER_KEY");
-        String TWITTER_SECRET = receivedBundle.getString("TWITTER_SECRET");
-
-        if (TWITTER_KEY != null && TWITTER_SECRET != null) {
-            TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
-            Fabric.with(this, new TwitterCore(authConfig), new TweetComposer());
-        }
+        TwitterAuthConfig authConfig = new TwitterAuthConfig("ACbtwPwrlbtPvf6o2uiR3NThl", "iLHe6ncZUZHO6nFQOJXgA0ptRSiDcrdi7CTVDCb0sESS7ow07A");
+        Fabric.with(this, new TwitterCore(authConfig), new TweetComposer());
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

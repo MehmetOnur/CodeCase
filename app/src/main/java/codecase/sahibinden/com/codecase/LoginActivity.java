@@ -35,15 +35,8 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void success(Result<TwitterSession> result) {
-
-                Bundle bundle = new Bundle();
-                bundle.putString("TWITTER_KEY", TWITTER_KEY);
-                bundle.putString("TWITTER_SECRET", TWITTER_SECRET);
-
                 Intent tweetListIntent = new Intent(LoginActivity.this, TweetListActivity.class);
-                tweetListIntent.putExtras(bundle);
                 startActivity(tweetListIntent);
-
             }
 
             @Override
