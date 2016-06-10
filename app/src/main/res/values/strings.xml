@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Code Case</string>
+    <string name="title_tweet_list">Tweets</string>
+    <string name="title_tweet_detail">Tweet Detail</string>
 </resources>

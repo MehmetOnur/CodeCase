@@ -2,7 +2,7 @@
 <manifest package="codecase.sahibinden.com.codecase"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
@@ -17,10 +17,29 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <meta-data
             android:name="io.fabric.ApiKey"
-            android:value="b0dbe1ed02b46869a834baa26f31a178f00be2d2" />
-    </application>
+            android:value="b0dbe1ed02b46869a834baa26f31a178f00be2d2"/>
 
+        <activity
+            android:name=".TweetListActivity"
+            android:label="@string/title_tweet_list"
+            android:parentActivityName=".LoginActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="codecase.sahibinden.com.codecase.LoginActivity"/>
+        </activity>
+        <activity
+            android:name=".TweetDetailActivity"
+            android:label="@string/title_tweet_detail"
+            android:parentActivityName=".TweetListActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="codecase.sahibinden.com.codecase.TweetListActivity"/>
+        </activity>
+    </application>
 
 </manifest>
